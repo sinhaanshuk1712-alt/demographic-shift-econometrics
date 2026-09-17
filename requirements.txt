@@ -1,0 +1,7 @@
+streamlit
+wbgapi
+pandas
+statsmodels
+matplotlib
+seaborn
+numpy
