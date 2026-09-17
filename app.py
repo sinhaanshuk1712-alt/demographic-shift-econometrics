@@ -2,8 +2,6 @@ import streamlit as st
 import wbgapi as wb
 import pandas as pd
 import statsmodels.api as sm
-import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
 
 # Page Configuration
@@ -11,41 +9,47 @@ st.set_page_config(page_title="Demographic Shift & GDP Analysis", layout="wide")
 
 st.title("The Demographic Shift & Labor Interdependence")
 st.write("An Econometric Analysis of Japan and South Asia (1990–2024)")
-st.write("Built to analyze structural economic stagnation and bilateral labor integration.")
 
-# Cache the API pull so the app loads instantly for admissions officers
+# Cache the API pull so the app loads instantly
 @st.cache_data
 def load_data():
     countries = ['JPN', 'SAS']
     df_pop = wb.data.DataFrame('SP.POP.1564.TO.ZS', countries, time=range(1990, 2025), numericTimeKeys=True)
     df_gdp = wb.data.DataFrame('NY.GDP.PCAP.KD', countries, time=range(1990, 2025), numericTimeKeys=True)
     
-    df_pop = df_pop.T.rename(columns={'JPN': 'JPN_Working_Age_Pct', 'SAS': 'SAS_Working_Age_Pct'})
-    df_gdp = df_gdp.T.rename(columns={'JPN': 'JPN_GDP_Per_Capita', 'SAS': 'SAS_GDP_Per_Capita'})
+    df_pop = df_pop.T.rename(columns={'JPN': 'Japan (Working Age %)', 'SAS': 'South Asia (Working Age %)'})
+    df_gdp = df_gdp.T.rename(columns={'JPN': 'Japan_GDP', 'SAS': 'South Asia_GDP'})
     
     df_merged = pd.concat([df_pop, df_gdp], axis=1).dropna()
-    df_merged['JPN_Log_GDP'] = np.log(df_merged['JPN_GDP_Per_Capita'])
+    df_merged['Japan_Log_GDP'] = np.log(df_merged['Japan_GDP'])
     return df_merged
 
 df = load_data()
 
-# Visualization Section
-st.subheader("1. The Demographic Divergence")
-fig, ax = plt.subplots(figsize=(10, 5))
-sns.set_theme(style="whitegrid")
-sns.lineplot(data=df, x=df.index, y='JPN_Working_Age_Pct', label='Japan', linewidth=2.5, ax=ax)
-sns.lineplot(data=df, x=df.index, y='SAS_Working_Age_Pct', label='South Asia', linewidth=2.5, ax=ax)
-ax.set_ylabel("Working-Age Population (% of Total)")
-ax.set_xlabel("Year")
-st.pyplot(fig)
+# --- INTERACTIVE DASHBOARD CONTROLS ---
+st.sidebar.header("Dashboard Controls")
+st.sidebar.write("Use this slider to adjust the econometric timeframe.")
+year_range = st.sidebar.slider("Select Year Range", int(df.index.min()), int(df.index.max()), (1990, 2023))
 
-# Regression Section
-st.subheader("2. Econometric Proof: Demographics vs. GDP Growth in Japan")
-st.write("This Ordinary Least Squares (OLS) regression models how the decline in Japan's working-age population correlates with its economic output (Log GDP).")
+# Filter data based on user's slider input
+filtered_df = df.loc[year_range[0]:year_range[1]]
 
-X = sm.add_constant(df['JPN_Working_Age_Pct'])
-y = df['JPN_Log_GDP']
-model = sm.OLS(y, X).fit()
+# --- 1. VISUALIZATION SECTION ---
+st.subheader("1. The Demographic Divergence (Interactive)")
+st.write("Hover over the lines to view exact working-age population percentages for specific years.")
+# Streamlit's native line_chart is interactive by default
+st.line_chart(filtered_df[['Japan (Working Age %)', 'South Asia (Working Age %)']])
 
-# Display regression results cleanly
-st.text(model.summary())
+# --- 2. REGRESSION SECTION ---
+st.subheader("2. Econometric Proof: Demographics vs. GDP Growth")
+st.write("Click the checkbox below to run a live regression model based on your selected timeframe.")
+
+# Interactive toggle for the math model
+run_model = st.checkbox("Run OLS Regression on Selected Timeframe")
+
+if run_model:
+    X = sm.add_constant(filtered_df['Japan (Working Age %)'])
+    y = filtered_df['Japan_Log_GDP']
+    model = sm.OLS(y, X).fit()
+    st.write(f"**Regression Results ({year_range[0]} - {year_range[1]}):**")
+    st.text(model.summary())
