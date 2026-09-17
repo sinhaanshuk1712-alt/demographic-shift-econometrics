@@ -1,5 +1,5 @@
 # Demographic Shift & Labor Interdependence: An Econometric Analysis (Japan vs. South Asia, 1990–2024)
-
+> **Live Interactive Dashboard:** [View Live Streamlit App](https://demographic-shift-econometrics-bzpazsji3eaogpgmvadzxc.streamlit.app/)
 ## Project Overview
 This repository contains an empirical econometric analysis investigating the correlation between shifting working-age population shares and real GDP per capita growth across Japan and South Asia over a 34-year horizon. 
 
